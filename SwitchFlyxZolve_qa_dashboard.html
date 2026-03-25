@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Zolve × Switchfly — QA Dashboard</title>
+<style>
+:root{
+  --db:#1F4E79;--mb:#2E75B6;--lb:#D6E4F0;
+  --teal:#1A6B72;--purple:#5B2C8D;--dg:#1E5C30;
+  --amber:#7B3F00;--red:#C0392B;--orange:#D35400;
+  --pass-bg:#E2EFDA;--pass-fg:#1E5C30;--pass-bd:#A9D18E;
+  --fail-bg:#FCE4D6;--fail-fg:#C0392B;--fail-bd:#F4B183;
+  --pend-bg:#FFF2CC;--pend-fg:#7B3F00;--pend-bd:#FFD966;
+  --row-alt:#F3F8FD;--brd:#D0D7DE;--text:#1a1a2e;--sub:#666;
+  --r:8px;--sh:0 2px 12px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#EEF3F9;color:var(--text);min-height:100vh}
+.hdr{background:linear-gradient(135deg,var(--db) 0%,var(--mb) 100%);padding:22px 32px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.hdr h1{color:#fff;font-size:1.3rem;font-weight:700}
+.hdr p{color:rgba(255,255,255,.7);font-size:.78rem;margin-top:3px}
+.hdr-badge{background:rgba(255,255,255,.15);color:#fff;padding:6px 14px;border-radius:20px;font-size:.73rem;font-weight:600;border:1px solid rgba(255,255,255,.25);white-space:nowrap}
+.kpi-bar{display:flex;gap:12px;padding:18px 32px;flex-wrap:wrap}
+.kpi{background:#fff;border-radius:var(--r);padding:14px 20px;flex:1;min-width:120px;box-shadow:var(--sh);border-top:4px solid var(--mb);display:flex;flex-direction:column;gap:3px}
+.kpi.pass{border-color:var(--pass-fg)}.kpi.fail{border-color:var(--fail-fg)}.kpi.pend{border-color:var(--pend-fg)}.kpi.iss{border-color:var(--red)}.kpi.imp{border-color:var(--amber)}
+.kn{font-size:1.9rem;font-weight:800;line-height:1;color:var(--db)}.kl{font-size:.7rem;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+.kpi.pass .kn{color:var(--pass-fg)}.kpi.fail .kn{color:var(--fail-fg)}.kpi.pend .kn{color:var(--pend-fg)}.kpi.iss .kn{color:var(--red)}.kpi.imp .kn{color:var(--amber)}
+.tab-bar{display:flex;padding:0 32px;gap:2px;flex-wrap:wrap}
+.tab{padding:9px 16px;border-radius:7px 7px 0 0;cursor:pointer;font-size:.8rem;font-weight:600;color:var(--sub);background:#dde5ef;border:1px solid transparent;border-bottom:none;transition:all .15s;user-select:none}
+.tab:hover{background:#cdd8e8;color:var(--db)}.tab.active{background:#fff;color:var(--db);border-color:var(--brd);border-bottom:2px solid #fff;margin-bottom:-1px;z-index:1}
+.content{background:#fff;margin:0 32px 32px;border-radius:0 var(--r) var(--r) var(--r);box-shadow:var(--sh);border:1px solid var(--brd);overflow:hidden}
+.pane{display:none}.pane.active{display:block}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+thead tr{background:var(--db)}
+thead th{color:#fff;font-weight:700;padding:10px 11px;text-align:left;white-space:nowrap;font-size:.72rem;text-transform:uppercase;letter-spacing:.4px}
+tbody tr:nth-child(even){background:var(--row-alt)}
+tbody tr:hover{background:#e4eef8}
+tbody td{padding:9px 11px;border-bottom:1px solid var(--brd);vertical-align:top;line-height:1.45}
+.sr td{background:var(--mb) !important;color:#fff;font-weight:700;font-size:.76rem;padding:6px 11px;letter-spacing:.3px}
+.tc-id{font-family:'Courier New',monospace;font-weight:700;color:var(--db);font-size:.76rem;white-space:nowrap}
+.pri{display:inline-block;padding:2px 7px;border-radius:10px;font-size:.66rem;font-weight:700;white-space:nowrap}
+.pc{background:#FDECEA;color:#C0392B;border:1px solid #F4B183}
+.ph{background:#FFF2CC;color:#7B3F00;border:1px solid #FFD966}
+.pm{background:#E3F2FD;color:#1565C0;border:1px solid #90CAF9}
+.pl{background:#F0F4F8;color:#555;border:1px solid #ccc}
+.st{display:inline-block;padding:3px 9px;border-radius:12px;font-size:.7rem;font-weight:700;white-space:nowrap}
+.sp{background:var(--pass-bg);color:var(--pass-fg);border:1px solid var(--pass-bd)}
+.sf{background:var(--fail-bg);color:var(--fail-fg);border:1px solid var(--fail-bd)}
+.sn{background:var(--pend-bg);color:var(--pend-fg);border:1px solid var(--pend-bd)}
+.act{color:var(--orange);font-style:italic;font-size:.73rem}
+.steps{white-space:pre-line;font-size:.73rem;color:#333}
+.exp{font-size:.73rem;color:#2c5f2e}
+.fb{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--brd);flex-wrap:wrap;background:#fafbfc}
+.fb label{font-size:.73rem;font-weight:600;color:var(--sub)}
+.fb select,.fb input{padding:4px 9px;border:1px solid var(--brd);border-radius:5px;font-size:.76rem;background:#fff;color:var(--text)}
+.fb input{min-width:180px}.fc{margin-left:auto;font-size:.73rem;color:var(--sub);font-style:italic}
+.sw{padding:22px}.st2{font-size:.96rem;font-weight:700;color:var(--db);margin-bottom:14px}
+.st2 span{font-size:.75rem;font-weight:400;color:var(--sub);margin-left:8px}
+.sum-t{width:100%;border-collapse:collapse;font-size:.8rem}
+.sum-t thead tr{background:var(--db)}.sum-t thead th{color:#fff;padding:10px 13px;text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.4px}
+.sum-t tbody tr:nth-child(even){background:var(--row-alt)}.sum-t tbody tr:hover{background:#e4eef8}
+.sum-t td{padding:9px 13px;border-bottom:1px solid var(--brd)}
+.sum-t .tr td{background:var(--db);color:#fff;font-weight:700}
+.pb{display:flex;align-items:center;gap:6px}.pbr{height:7px;border-radius:4px;background:#e0e8f0;flex:1;overflow:hidden;min-width:60px}.pbf{height:100%;border-radius:4px}
+.ig{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.ic{padding:22px}.ic:first-child{border-right:1px solid var(--brd)}
+.ich{display:flex;align-items:center;gap:8px;font-size:.92rem;font-weight:800;margin-bottom:16px;padding-bottom:9px;border-bottom:2px solid}
+.ic.maj .ich{color:var(--red);border-color:var(--red)}.ic.imp .ich{color:var(--amber);border-color:var(--amber)}
+.icard{border:1px solid var(--brd);border-radius:var(--r);margin-bottom:11px;overflow:hidden}
+.icard.maj{border-left:4px solid var(--red)}.icard.imp{border-left:4px solid var(--amber)}
+.it{padding:9px 13px 5px;font-weight:700;font-size:.8rem;background:#fafafa}
+.ib{padding:5px 13px 11px;font-size:.76rem;color:#444;line-height:1.55}
+@media(max-width:860px){.ig{grid-template-columns:1fr}.ic:first-child{border-right:none;border-bottom:1px solid var(--brd)}.kpi-bar,.tab-bar,.content{padding-left:12px;padding-right:12px;margin-left:0;margin-right:0}.hdr{padding:14px 12px}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <h1>Zolve × Switchfly — Z Points QA Dashboard</h1>
+    <p>Feature: Z Points Redemption &nbsp;·&nbsp; Switchfly Integration &nbsp;·&nbsp; March 2026</p>
+  </div>
+  <div class="hdr-badge">QA Testing Phase</div>
+</div>
+
+<div class="kpi-bar">
+  <div class="kpi">        <div class="kn" style="color:var(--db)">58</div><div class="kl">Total Test Cases</div></div>
+  <div class="kpi pass">  <div class="kn">23</div><div class="kl">✓ Passed</div></div>
+  <div class="kpi fail">  <div class="kn">4</div> <div class="kl">✗ Failed</div></div>
+  <div class="kpi pend">  <div class="kn">31</div><div class="kl">⏳ Pending</div></div>
+  <div class="kpi iss">   <div class="kn">10</div><div class="kl">🔴 Major Issues</div></div>
+  <div class="kpi imp">   <div class="kn">6</div> <div class="kl">🟡 Improvements</div></div>
+</div>
+
+<div class="tab-bar">
+  <div class="tab active"  onclick="showTab(this,'summary')">📊 Summary</div>
+  <div class="tab"         onclick="showTab(this,'zpoints')">💎 Z Points Redemption</div>
+  <div class="tab"         onclick="showTab(this,'rewards')">🏅 Rewards Display</div>
+  <div class="tab"         onclick="showTab(this,'concurrent')">📱 Multi-Device</div>
+  <div class="tab"         onclick="showTab(this,'edge')">⚠️ Edge Cases</div>
+  <div class="tab"         onclick="showTab(this,'issues')">🐛 Issues</div>
+</div>
+
+<div class="content">
+
+<div class="pane active" id="pane-summary">
+  <div class="sw">
+    <div class="st2">Coverage &amp; Status by Module <span>— updated from actual test results</span></div>
+    <table class="sum-t">
+      <thead><tr><th>Sheet</th><th>Category</th><th>Section</th><th style="text-align:center"># TCs</th><th style="text-align:center">Pass</th><th style="text-align:center">Fail</th><th style="text-align:center">Pending</th><th style="min-width:150px">Progress</th></tr></thead>
+      <tbody id="sum-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="pane" id="pane-zpoints">
+  <div class="fb">
+    <label>Status:</label>
+    <select onchange="filter('zp',this.value,'status')"><option value="">All</option><option>pass</option><option>fail</option><option>pending</option></select>
+    <label>Priority:</label>
+    <select onchange="filter('zp',this.value,'pri')"><option value="">All</option><option>critical</option><option>high</option><option>medium</option></select>
+    <input type="text" placeholder="Search scenarios…" oninput="search('zp',this.value)"/>
+    <span class="fc" id="zp-c"></span>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>TC ID</th><th>Sub-Category</th><th style="min-width:220px">Test Scenario</th><th style="min-width:180px">Pre-conditions</th><th style="min-width:200px">Test Steps</th><th style="min-width:200px">Expected Result</th><th style="min-width:180px">Actual Result</th><th>Priority</th><th>Status</th></tr></thead>
+    <tbody id="body-zp"></tbody>
+  </table></div>
+</div>
+
+<div class="pane" id="pane-rewards">
+  <div class="fb">
+    <label>Status:</label>
+    <select onchange="filter('rwd',this.value,'status')"><option value="">All</option><option>pass</option><option>fail</option><option>pending</option></select>
+    <input type="text" placeholder="Search scenarios…" oninput="search('rwd',this.value)"/>
+    <span class="fc" id="rwd-c"></span>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>TC ID</th><th>Sub-Category</th><th style="min-width:220px">Test Scenario</th><th style="min-width:180px">Pre-conditions</th><th style="min-width:200px">Test Steps</th><th style="min-width:200px">Expected Result</th><th style="min-width:180px">Actual Result</th><th>Priority</th><th>Status</th></tr></thead>
+    <tbody id="body-rwd"></tbody>
+  </table></div>
+</div>
+
+<div class="pane" id="pane-concurrent">
+  <div class="fb">
+    <label>Status:</label>
+    <select onchange="filter('con',this.value,'status')"><option value="">All</option><option>pass</option><option>fail</option><option>pending</option></select>
+    <input type="text" placeholder="Search scenarios…" oninput="search('con',this.value)"/>
+    <span class="fc" id="con-c"></span>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>TC ID</th><th>Sub-Category</th><th style="min-width:220px">Test Scenario</th><th style="min-width:180px">Pre-conditions</th><th style="min-width:200px">Test Steps</th><th style="min-width:200px">Expected Result</th><th style="min-width:180px">Actual Result</th><th>Priority</th><th>Status</th></tr></thead>
+    <tbody id="body-con"></tbody>
+  </table></div>
+</div>
+
+<div class="pane" id="pane-edge">
+  <div class="fb">
+    <label>Status:</label>
+    <select onchange="filter('edg',this.value,'status')"><option value="">All</option><option>pass</option><option>fail</option><option>pending</option></select>
+    <label>Priority:</label>
+    <select onchange="filter('edg',this.value,'pri')"><option value="">All</option><option>critical</option><option>high</option><option>medium</option></select>
+    <input type="text" placeholder="Search scenarios…" oninput="search('edg',this.value)"/>
+    <span class="fc" id="edg-c"></span>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>TC ID</th><th>Sub-Category</th><th style="min-width:220px">Test Scenario</th><th style="min-width:180px">Pre-conditions</th><th style="min-width:200px">Test Steps</th><th style="min-width:200px">Expected Result</th><th style="min-width:180px">Actual Result</th><th>Priority</th><th>Status</th></tr></thead>
+    <tbody id="body-edg"></tbody>
+  </table></div>
+</div>
+
+<div class="pane" id="pane-issues">
+  <div class="ig">
+    <div class="ic maj">
+      <div class="ich">🔴 Major Issues <span style="font-size:.73rem;font-weight:400;margin-left:4px">(10)</span></div>
+      <div id="maj-list"></div>
+    </div>
+    <div class="ic imp">
+      <div class="ich">🟡 Improvements <span style="font-size:.73rem;font-weight:400;margin-left:4px">(6)</span></div>
+      <div id="imp-list"></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+function showTab(el,id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pane-'+id).classList.add('active');
+}
+
+const SUM=[
+  {sheet:"💎 Z Points Redemption",cat:"Z Points Only",    sec:"Points-Only Redemption",       n:10,p:6,f:1,q:3},
+  {sheet:"💎 Z Points Redemption",cat:"Hybrid Payment",  sec:"Z Points + Credit Card",        n:8, p:4,f:0,q:4},
+  {sheet:"💎 Z Points Redemption",cat:"Refund",          sec:"Points Refund & Reversal",      n:8, p:2,f:1,q:5},
+  {sheet:"🏅 Rewards Display",    cat:"Rewards Display", sec:"Transaction Description & History",n:11,p:7,f:1,q:3},
+  {sheet:"📱 Multi-Device",       cat:"Concurrent",      sec:"Simultaneous Sessions",         n:7, p:2,f:1,q:4},
+  {sheet:"⚠️ Edge Cases",         cat:"Boundary",        sec:"Points Thresholds & Arithmetic",n:4, p:2,f:0,q:2},
+  {sheet:"⚠️ Edge Cases",         cat:"Network/Session", sec:"Network & Session Edge Cases",  n:5, p:0,f:0,q:5},
+  {sheet:"⚠️ Edge Cases",         cat:"Product-Specific",sec:"Product-Specific Edge Cases",   n:5, p:0,f:0,q:5},
+];
+
+const ZP=[
+  {s:"POINTS-ONLY REDEMPTION — Full Payment via Z Points"},
+  {id:"TC-ZP-01",sub:"Points Only",sc:"Minimum 100 points threshold — exact minimum redeemed",pre:"User has exactly 100 Z points; product costs 100 points",steps:"1. Log into Zolve\n2. Tap 'Book Travel'\n3. Select product costing exactly 100 points\n4. Choose 'Pay with Z Points'\n5. Confirm booking",exp:"Booking succeeds; exactly 100 points deducted; wallet shows 0 remaining; confirmation screen shows deduction",act:"",pri:"High",st:"Pass"},
+  {id:"TC-ZP-03",sub:"Points Only",sc:"Exact points balance used — wallet reaches zero",pre:"User has 350 points; product costs exactly 350 points",steps:"1. Select product costing 350 points\n2. Pay fully with Z Points\n3. Check wallet post-booking",exp:"Booking confirmed; wallet balance = 0; no negative balance; points deduction entry visible in rewards history",act:"",pri:"High",st:"Pending"},
+  {id:"TC-ZP-04",sub:"Points Only",sc:"Correct amount deducted for flight booking",pre:"User has 1000 points; flight costs 400 points",steps:"1. Search flights\n2. Select flight (400 pts)\n3. Pay with Z Points\n4. Check wallet",exp:"400 points deducted; wallet shows 600 remaining; booking confirmation references correct points amount",act:"",pri:"High",st:"Pass"},
+  {id:"TC-ZP-05",sub:"Points Only",sc:"Correct amount deducted for hotel booking",pre:"User has 1000 points; hotel costs 600 points",steps:"1. Search hotels\n2. Select hotel (600 pts)\n3. Pay with Z Points\n4. Verify wallet",exp:"600 points deducted; wallet shows 400 remaining; hotel booking confirmed",act:"",pri:"High",st:"Pass"},
+  {id:"TC-ZP-06",sub:"Points Only",sc:"Correct amount deducted for car rental booking",pre:"User has 800 points; car rental costs 250 points",steps:"1. Search car rentals\n2. Select car rental (250 pts)\n3. Pay with Z Points",exp:"250 points deducted; wallet shows 550 remaining; car rental booking confirmed",act:"Cannot find any car rentals with any search",pri:"High",st:"Pending"},
+  {id:"TC-ZP-07",sub:"Points Only",sc:"Combo package booking (flight + hotel) with Z points",pre:"User has 2000 points; flight+hotel combo costs 1500 points",steps:"1. Search combo packages\n2. Select flight+hotel combo\n3. Pay with Z Points",exp:"1500 points deducted; wallet shows 500 remaining; both flight and hotel confirmed in one booking",act:"Search option does not work when combo includes car rental. Getting blank page on clicking checkout for Air + Hotel",pri:"High",st:"Fail"},
+  {id:"TC-ZP-08",sub:"Points Only",sc:"Insufficient points — full points payment blocked; hybrid mode offered",pre:"User has 200 points; product costs 500 points",steps:"1. Select product costing 500 points\n2. Attempt to pay fully with Z Points",exp:"'Insufficient points' message shown; Z Points-only option disabled; user prompted to use hybrid payment",act:"Hybrid mode is directly enabled when points are insufficient",pri:"High",st:"Pass"},
+  {id:"TC-ZP-09",sub:"Points Only",sc:"Points deducted atomically — no partial deduction on API failure",pre:"Valid session; simulate /redeem API failure mid-process",steps:"1. Initiate points-only booking\n2. Force /redeem API to fail mid-process\n3. Check wallet balance",exp:"No points deducted; booking not confirmed; user shown error with retry option",act:"",pri:"Critical",st:"Pending"},
+  {id:"TC-ZP-10",sub:"Points Only",sc:"Real-time wallet balance reflected before and after booking",pre:"User has known points balance",steps:"1. Note wallet balance on Zolve home\n2. Open Switchfly\n3. Complete booking\n4. Return to Zolve home",exp:"Balance on Switchfly checkout matches Zolve wallet; post-booking balance reflects deduction immediately",act:"",pri:"High",st:"Pass"},
+  {s:"HYBRID PAYMENT — Z Points + Credit Card"},
+  {id:"TC-HYB-01",sub:"Points + Card",sc:"Partial points payment — remaining balance charged to card",pre:"User has 300 points; product costs 800 points; card on file",steps:"1. Select product (800 pts equivalent)\n2. Choose hybrid payment\n3. Apply 300 Z points\n4. Remaining 500 pts equivalent charged to card\n5. Confirm",exp:"300 points deducted; card charged for equivalent of 500 pts; full booking confirmed",act:"Card charged balance needs to be verified separately",pri:"Critical",st:"Pass"},
+  {id:"TC-HYB-02",sub:"Points + Card",sc:"Minimum 100 points enforced in hybrid mode",pre:"User has 500 points; product costs 300 points",steps:"1. Select hybrid payment\n2. Try to apply only 50 points (below minimum)\n3. Try to apply 100 points",exp:"Applying 50 points rejected with 'Minimum 100 points' error; applying 100 points accepted; remainder charged to card",act:"Slider cannot be moved below 100 points",pri:"High",st:"Pass"},
+  {id:"TC-HYB-03",sub:"Points + Card",sc:"User cannot apply more points than their available balance",pre:"User has 200 points; product costs 500 points",steps:"1. Choose hybrid payment\n2. Attempt to enter 300 points manually",exp:"Input capped at 200 (user's actual balance); remaining balance correctly recalculated for card",act:"",pri:"High",st:"Pass"},
+  {id:"TC-HYB-04",sub:"Points + Card",sc:"Card charge amount updates dynamically as points slider changes",pre:"User on hybrid payment screen",steps:"1. Enter 100 points → observe card amount\n2. Increase to 200 points → observe card amount\n3. Increase to max available → observe card amount",exp:"Card charge amount decreases correctly as more points are applied; points + card always equals total",act:"",pri:"High",st:"Pending"},
+  {id:"TC-HYB-05",sub:"Points + Card",sc:"Card payment failure — no points deducted",pre:"Valid points; card payment configured to decline",steps:"1. Enter hybrid payment details\n2. Simulate card decline\n3. Check wallet",exp:"Booking fails; zero points deducted; user shown card decline message; retry available",act:"Tested with high-risk and insufficient-funds test cards — getting error 'invalid card type'",pri:"Critical",st:"Pass"},
+  {id:"TC-HYB-06",sub:"Points + Card",sc:"Points deducted only after card payment succeeds (order of operations)",pre:"Valid points and valid card",steps:"1. Submit hybrid payment\n2. Intercept backend sequence\n3. Verify card is charged before points are deducted",exp:"Card charged first; points deducted only after card success; card failure at any point leaves points intact",act:"",pri:"Critical",st:"Pending"},
+  {id:"TC-HYB-07",sub:"Points + Card",sc:"Booking confirmation screen shows correct payment breakdown",pre:"Successful hybrid booking",steps:"1. Complete hybrid booking (200 pts + card)\n2. Check confirmation screen",exp:"Confirmation shows: points used, card charged amount, total booking value, and booking reference",act:"",pri:"High",st:"Pending"},
+  {id:"TC-HYB-08",sub:"Points + Card",sc:"Hybrid payment for combo package (flight + hotel)",pre:"User has 500 points; combo costs 1200 points equivalent",steps:"1. Select combo package\n2. Apply 500 Z points\n3. Charge remaining to card",exp:"500 points deducted; card charged for remainder; both flight and hotel confirmed under one booking reference",act:"",pri:"High",st:"Pending"},
+  {s:"REFUND & POINTS REVERSAL"},
+  {id:"TC-REF-01",sub:"Full Refund",sc:"Full cancellation — all Z points refunded to wallet",pre:"Booking made with 400 Z points only; booking then cancelled",steps:"1. Complete a 400-point booking\n2. Cancel the booking via Switchfly\n3. Check Zolve wallet",exp:"400 points credited back to wallet; wallet restored to pre-booking value; refund entry visible in rewards history",act:"",pri:"Critical",st:"Pass"},
+  {id:"TC-REF-02",sub:"Full Refund",sc:"Full hybrid booking cancellation — points and card both refunded",pre:"Booking made with 200 pts + card charge; booking cancelled",steps:"1. Complete hybrid booking\n2. Cancel booking\n3. Check wallet and card statement",exp:"200 points returned to wallet; card refunded for exact card-charged amount; no partial states",act:"",pri:"Critical",st:"Pending",note:"Need a mock CC"},
+  {id:"TC-REF-03",sub:"Partial Refund",sc:"Partial cancellation — only cancelled leg points refunded",pre:"Combo booking (flight 300 pts + hotel 400 pts); only hotel cancelled",steps:"1. Book combo package\n2. Cancel only the hotel leg\n3. Check Zolve wallet",exp:"Only 400 points (hotel share) returned; flight booking remains active; flight points untouched",act:"",pri:"High",st:"Pending"},
+  {id:"TC-REF-04",sub:"Timing",sc:"Refunded points visible in Switchfly wallet within SLA — no stale state",pre:"Booking cancelled",steps:"1. Cancel booking\n2. Immediately check Switchfly wallet\n3. Check again after 60 seconds",exp:"Points credited within SLA (<30 seconds); balance reflects correctly; no stale display",act:"After refund is processed, Switchfly wallet still shows 0 points and does not re-add the reversed points. User must exit the webview and retry.",pri:"High",st:"Fail"},
+  {id:"TC-REF-05",sub:"Accuracy",sc:"Refunded points amount exactly matches original deduction",pre:"Booking made with 750 points",steps:"1. Note exact points deducted at booking\n2. Cancel booking\n3. Verify refund amount",exp:"Exactly 750 points credited back; no rounding errors; no over- or under-refund",act:"",pri:"Critical",st:"Pass"},
+  {id:"TC-REF-06",sub:"Double Refund",sc:"Duplicate cancellation request — no double credit",pre:"Booking cancelled once",steps:"1. Cancel booking\n2. Attempt to cancel same booking again (or simulate duplicate /refund call)",exp:"Second cancellation rejected; points not credited twice; wallet balance remains correct",act:"",pri:"Critical",st:"Pending"},
+  {id:"TC-REF-07",sub:"Non-refundable",sc:"Non-refundable booking — points not returned on cancellation",pre:"Non-refundable fare selected and booked with Z points",steps:"1. Book a non-refundable product\n2. Attempt cancellation",exp:"Cancellation blocked with 'non-refundable' message, or proceeds without points refund; user clearly informed",act:"",pri:"High",st:"Pending"},
+  {id:"TC-REF-08",sub:"Expiry",sc:"Refund attempted after refund window has closed",pre:"Booking's refund window has expired",steps:"1. Book product\n2. Wait past refund eligibility window\n3. Attempt cancellation",exp:"Cancellation blocked or processed without points refund; cancellation policy message clearly shown",act:"",pri:"Medium",st:"Pending"},
+];
+
+const RWD=[
+  {s:"REWARDS SECTION — Transaction Description & Display"},
+  {id:"TC-RWD-01",sub:"Transaction Entry",sc:"Booking via Z points creates a transaction entry in rewards history",pre:"Successful booking with Z points",steps:"1. Complete a booking using Z points\n2. Navigate to Zolve Rewards / Wallet section\n3. Check transaction history",exp:"New debit entry visible; description includes: 'Switchfly - [Product Type]', points amount, date, and booking reference",act:"",pri:"High",st:"Pass"},
+  {id:"TC-RWD-02",sub:"Description Format",sc:"Transaction description correctly identifies flight bookings",pre:"Flight booked using Z points",steps:"1. Book a flight with Z points\n2. View rewards history",exp:"Entry reads: 'Switchfly Travel - Flight Booking' (or equivalent); points deducted shown clearly",act:"Shows 'Switchfly booking - (booking ID)' only — no product type differentiation",pri:"High",st:"Pass"},
+  {id:"TC-RWD-03",sub:"Description Format",sc:"Transaction description correctly identifies hotel bookings",pre:"Hotel booked using Z points",steps:"1. Book a hotel with Z points\n2. View rewards history",exp:"Entry reads: 'Switchfly Travel - Hotel Booking' (or equivalent); amount and date correct",act:"Shows 'Switchfly booking - (booking ID)' only",pri:"High",st:"Pass"},
+  {id:"TC-RWD-04",sub:"Description Format",sc:"Transaction description correctly identifies car rental bookings",pre:"Car rental booked using Z points",steps:"1. Book a car rental with Z points\n2. View rewards history",exp:"Entry reads: 'Switchfly Travel - Car Rental' (or equivalent); description distinguishable from flights and hotels",act:"Cannot find any car rental searches to complete this test",pri:"High",st:"Fail"},
+  {id:"TC-RWD-05",sub:"Description Format",sc:"Transaction description correctly identifies combo package bookings",pre:"Combo package booked using Z points",steps:"1. Book a combo (flight+hotel) with Z points\n2. View rewards history",exp:"Entry clearly describes the combo; no generic label like 'Switchfly transaction'",act:"Shows 'Switchfly booking - (booking ID)' only",pri:"High",st:"Pass"},
+  {id:"TC-RWD-06",sub:"Refund Entry",sc:"Refund creates a credit entry with correct description",pre:"Booking cancelled; refund processed",steps:"1. Cancel a booking\n2. Navigate to rewards history",exp:"Credit entry visible; description indicates refund: 'Switchfly Travel - Refund' with original booking reference and points credited",act:"",pri:"High",st:"Pending",note:"Cancellations currently unavailable in test env"},
+  {id:"TC-RWD-07",sub:"Refund Entry",sc:"Partial refund entry shows correct partial points amount",pre:"Partial cancellation processed",steps:"1. Cancel one leg of a combo\n2. View rewards history",exp:"Credit entry shows only the partial refund amount; original debit entry remains; net balance is correct",act:"",pri:"High",st:"Pending"},
+  {id:"TC-RWD-08",sub:"Hybrid Entry",sc:"Hybrid payment creates both a points entry and card entry in transaction history",pre:"Hybrid booking completed",steps:"1. Complete hybrid payment booking\n2. Check rewards history AND card statement",exp:"Rewards history shows points deducted entry; card history shows card charge; both descriptions consistent",act:"",pri:"High",st:"Pending",note:"Need mock Zolve CC"},
+  {id:"TC-RWD-09",sub:"Sorting & Order",sc:"Transactions appear in correct reverse-chronological order",pre:"Multiple Z point transactions across different dates",steps:"1. Make 3 bookings on different days\n2. View rewards history",exp:"Most recent transaction at top; all entries in correct descending date order; no missing entries",act:"Latest stays at top ✓",pri:"Medium",st:"Pass"},
+  {id:"TC-RWD-11",sub:"Empty State",sc:"Rewards history empty state shown correctly for new user",pre:"New user with no transactions",steps:"1. Log in with a fresh account\n2. Navigate to rewards history",exp:"Empty state UI shown: 'No transactions yet' or equivalent; no error or blank screen",act:"",pri:"Low",st:"Pass"},
+  {id:"TC-RWD-12",sub:"Long Description",sc:"Long booking reference does not break rewards history UI layout",pre:"Booking with long reference ID",steps:"1. Complete booking\n2. View transaction entry with long reference\n3. Check UI on small screen",exp:"Text truncated or wrapped gracefully; no layout breakage; full reference accessible via tap/expand",act:"Description size appears uniform — no overflow issue observed",pri:"Medium",st:"Pass"},
+];
+
+const CON=[
+  {s:"SIMULTANEOUS SESSIONS — Same Account, Two Devices"},
+  {id:"TC-CON-01",sub:"Simultaneous Purchase",sc:"Device A books via Switchfly while Device B simultaneously redeems Z points on another offer",pre:"Same account on Device A and Device B; user has 1000 points",steps:"1. Device A: Open Switchfly, select hotel (600 pts), initiate checkout\n2. Device B: Simultaneously redeem 600 points on a different Zolve offer\n3. Device A: Confirm Switchfly booking\n4. Check wallet on both devices",exp:"One operation succeeds and deducts correctly; the other is rejected with 'Insufficient points'; final wallet balance consistent on both devices",act:"Getting failure when converting the points to cash (400)",pri:"Critical",st:"Pass"},
+  {id:"TC-CON-02",sub:"Balance Consistency",sc:"Device A reflects points redemption made on Device B in near-real-time",pre:"Same account on two devices; Device B redeems 1000 points",steps:"1. Device A: Open Switchfly — note points balance\n2. Device B: Redeem 1000 points on Zolve\n3. Device A: Refresh or navigate back to points display",exp:"Device A shows updated balance after refresh; stale balance does not lead to over-redemption",act:"Cannot book on Switchfly — asks to retry by closing the browser",pri:"Critical",st:"Pass"},
+  {id:"TC-CON-03",sub:"Race Condition — Same Offer",sc:"Both devices attempt to book the exact same Switchfly offer simultaneously — only one should succeed",pre:"Same account on two devices; both at Switchfly checkout for same offer",steps:"1. Device A and Device B both reach checkout for identical offer simultaneously\n2. Both tap Confirm at the same time",exp:"Only one booking succeeds and deducts points; second request returns error (duplicate or insufficient points); wallet not double-charged",act:"🚨 Both got booked with different booking IDs and points deducted from both — double spend confirmed",pri:"Critical",st:"Fail"},
+  {id:"TC-CON-04",sub:"Race Condition — Drain to Zero",sc:"Two devices race to spend the same balance — wallet must not go negative",pre:"User has 500 points; Device A booking costs 500 pts; Device B tries to redeem 500 pts simultaneously",steps:"1. Device A: Initiate checkout for 500-pt offer\n2. Device B: Simultaneously redeem 500 pts elsewhere\n3. Observe outcomes on both",exp:"Exactly 500 points deducted total; one transaction succeeds, one fails cleanly; balance never goes negative",act:"",pri:"Critical",st:"Pending",note:"Unable to complete flow on Device B — stuck on a loader"},
+  {id:"TC-CON-05",sub:"Session Token Isolation",sc:"Logging out on Device B does not invalidate Switchfly session on Device A",pre:"Both devices logged into same account; Device A is mid-booking on Switchfly",steps:"1. Device A: Begin Switchfly booking flow\n2. Device B: Log out of Zolve app\n3. Device A: Complete Switchfly booking",exp:"Device A booking completes successfully if tokens are still valid; OR Device A gracefully handles session invalidation with clear message",act:"",pri:"High",st:"Pending"},
+  {id:"TC-CON-07",sub:"Concurrent Refund + New Booking",sc:"Device B cannot spend points that are mid-refund on Device A",pre:"Booking cancelled on Device A; Device B tries to use those unconfirmed refund points",steps:"1. Device A: Cancel booking (500 pts to be refunded)\n2. Device B: Immediately try to book something worth 500 pts\n3. Refund processes\n4. Check final balance",exp:"Device B booking rejected until balance is confirmed; no phantom spending of unconfirmed refund points",act:"",pri:"Critical",st:"Pending"},
+  {id:"TC-CON-08",sub:"UI State Sync",sc:"Wallet balance on both devices matches after all concurrent operations settle",pre:"After any concurrent test above completes",steps:"1. Allow all in-flight transactions to settle\n2. Pull-to-refresh on both Device A and Device B wallet screens",exp:"Both devices show identical wallet balance; no inconsistency or stale cache",act:"",pri:"High",st:"Pending"},
+];
+
+const EDG=[
+  {s:"BOUNDARY — Points Thresholds & Arithmetic"},
+  {id:"TC-EDG-01",sub:"Boundary",sc:"Exactly 100 points balance — minimum redemption at exact minimum",pre:"User has exactly 100 points",steps:"1. Select cheapest product costing exactly 100 pts\n2. Pay with Z Points",exp:"Booking succeeds; wallet reaches 0; no error",act:"Could not find any product worth exactly 100 points to test this",pri:"High",st:"Pending"},
+  {id:"TC-EDG-02",sub:"Boundary",sc:"99 points balance — Z points redemption blocked at sub-minimum",pre:"User has exactly 99 points",steps:"1. Open Switchfly\n2. Attempt any points redemption",exp:"Z Points payment option disabled or error shown; minimum threshold message displayed",act:"Slider cannot be moved below 100 points ✓",pri:"High",st:"Pass"},
+  {id:"TC-EDG-03",sub:"Boundary",sc:"Very large points balance (999,999 pts) — correct deduction and no overflow",pre:"User with 999,999 points in wallet",steps:"1. Book product costing 50,000 pts\n2. Confirm and check wallet",exp:"949,999 points remain; no integer overflow or display formatting error",act:"",pri:"Medium",st:"Pass"},
+  {id:"TC-EDG-05",sub:"Arithmetic",sc:"Floating-point rounding in hybrid payment — no 1-cent discrepancy",pre:"Hybrid booking where points cover a non-round amount",steps:"1. Select product with non-round price (e.g. $47.99)\n2. Apply 100 points\n3. Check card charge",exp:"Card charged exactly (total - points value); no penny over or under; total always reconciles",act:"",pri:"High",st:"Pending"},
+  {s:"NETWORK & SESSION EDGE CASES"},
+  {id:"TC-EDG-06",sub:"Network",sc:"App backgrounded mid-checkout — session not lost on return",pre:"User at Switchfly checkout screen",steps:"1. Initiate checkout\n2. Minimize the Zolve app for 30 seconds\n3. Return to app",exp:"Checkout screen restored; session still valid; user can complete booking without re-authenticating",act:"",pri:"High",st:"Pending"},
+  {id:"TC-EDG-07",sub:"Network",sc:"Network drop mid-redemption — points state not corrupted",pre:"User confirms booking; network drops immediately after",steps:"1. Tap Confirm on checkout\n2. Immediately toggle airplane mode\n3. Restore network\n4. Check wallet and booking status",exp:"Either booking confirmed (points deducted correctly) OR booking failed (no points deducted); never a state where points are deducted but booking is absent",act:"",pri:"Critical",st:"Pending"},
+  {id:"TC-EDG-08",sub:"Network",sc:"Slow network — no duplicate booking from impatient double-tap",pre:"Very slow network (throttled to 3G)",steps:"1. Throttle network\n2. Tap Confirm on checkout\n3. Tap Confirm again while loading",exp:"Only one booking created; double-tap protected; points deducted only once",act:"",pri:"High",st:"Pending"},
+  {id:"TC-EDG-09",sub:"Session",sc:"Points redeemed just as session token expires — no silent failure",pre:"access_token is about to expire (within seconds)",steps:"1. Let access_token approach expiry\n2. Confirm booking at the last moment",exp:"Token refreshed transparently and booking succeeds, OR booking rejected with clear re-auth prompt; never a silent failure with points deducted but no booking",act:"",pri:"Critical",st:"Pending"},
+  {id:"TC-EDG-10",sub:"Session",sc:"App force-closed during booking — points and booking state correct on re-open",pre:"User at Switchfly checkout; app force-closed",steps:"1. Reach checkout screen\n2. Force-kill the Zolve app\n3. Reopen app\n4. Check wallet and bookings",exp:"If booking was mid-flight: either completed correctly or rolled back; wallet reflects accurate state; no orphaned deduction",act:"",pri:"Critical",st:"Pending"},
+  {s:"PRODUCT-SPECIFIC EDGE CASES"},
+  {id:"TC-EDG-11",sub:"Flight",sc:"Flight price change between search and checkout — user notified, old price not silently charged",pre:"Flight price changes between search result and checkout (dynamic pricing)",steps:"1. Search flights\n2. Note points cost\n3. Wait 2 minutes\n4. Proceed to checkout",exp:"If price changed: new price shown with confirmation prompt; old points amount not silently charged",act:"",pri:"High",st:"Pending"},
+  {id:"TC-EDG-12",sub:"Hotel",sc:"Last hotel room sold between search and checkout — no points deducted",pre:"Hotel has 1 room left",steps:"1. Select last-available hotel room\n2. Another user books it first (simulate)\n3. Current user tries to confirm",exp:"Booking fails with 'No longer available' message; no points deducted; user prompted to search again",act:"",pri:"High",st:"Pending"},
+  {id:"TC-EDG-13",sub:"Car Rental",sc:"Car rental with add-ons — total points includes all extras correctly",pre:"Car rental with GPS and insurance add-ons selected",steps:"1. Select car rental\n2. Add GPS (50 pts) and insurance (100 pts) add-ons\n3. Check total points at checkout",exp:"Total points = base + add-ons; each line item shown separately; final deduction matches displayed total",act:"",pri:"Medium",st:"Pending"},
+  {id:"TC-EDG-14",sub:"Combo",sc:"Combo package — one leg fails; partial points refund handled correctly",pre:"Combo package booking; flight leg succeeds but hotel leg fails",steps:"1. Book flight+hotel combo\n2. Simulate hotel booking failure on backend\n3. Observe outcome",exp:"Either full combo rolled back (all points refunded) OR user notified and partial completion offered; no silent partial deduction",act:"",pri:"Critical",st:"Pending"},
+  {id:"TC-EDG-15",sub:"Cancellation Policy",sc:"Free cancellation window — points refunded; outside window — no refund",pre:"Booking with 24-hour free cancellation window",steps:"1. Book with free cancellation\n2. Cancel within 24 hours → verify refund\n3. Book again; cancel after 24 hours → verify no refund",exp:"Within window: full points refund; outside window: no points refund; cancellation policy clearly communicated at both stages",act:"",pri:"High",st:"Pending"},
+];
+
+const ISSUES={
+  maj:[
+    {t:"Checkout screen unreachable on Android (multiple accounts)",b:"The checkout screen cannot be reached multiple times on Android. This is a critical blocker — the core booking flow is completely inaccessible. Needs immediate API and session investigation."},
+    {t:"Processing gets stuck mid-flow on multiple accounts",b:"The booking process hangs at an intermediate state on different test accounts. Root cause is likely an API failure or timeout not being handled gracefully. Needs backend API log review across affected accounts."},
+    {t:"Room dropdown auto-opens on landing and cannot be dismissed",b:"On the Hotel/Flight tab, the room count dropdown auto-selects and opens on page load, blocking all other UI elements. There is no way to dismiss it without selecting a value, making the screen unusable on arrival."},
+    {t:"Room dropdown is non-scrollable and has no confirmation button",b:"The room field dropdown is glitchy — it does not scroll reliably when content overflows. There is no 'Done' or 'Apply' button after selecting the number of rooms or travellers, leaving users with no clear way to confirm their selection."},
+    {t:"Check-in / Check-out fields accept invalid dates with a misleading error",b:"The date fields are directly editable via keyboard. When a user enters a past date or a date more than a year in the future, the error shown is 'Check-in date is required' instead of a meaningful validation message like 'Please enter a valid date'."},
+    {t:"Session timeout CTA redirects to broken webview instead of Rewards screen",b:"When a session times out, the CTA redirects the user to a broken webview state instead of correctly routing them to the Rewards screen."},
+    {t:"Logout redirects to zolve.com instead of the in-app login screen",b:"Tapping Logout from the Profile screen takes the user to the external zolve.com website instead of the Zolve app's login screen. This breaks the in-app experience entirely."},
+    {t:"No exit button to leave Switchfly and return to the Zolve app",b:"There is no dedicated button to exit Switchfly and return to the Zolve home screen. The back button navigates through the previous screen stack (including stale loaders from search) rather than cleanly exiting. The navigation stack is not cleared on exit."},
+    {t:"Traveller minimum age validation shows wrong error message",b:"On the checkout screen, the minimum traveller age is 18. However, when an invalid age is entered, the error shown is 'Enter valid date' — completely unrelated to the actual validation. The error message must correctly reflect the age requirement."},
+    {t:"Points allocation slider has insufficient touch target on iOS",b:"The slider pointer for allocating Z Points on the checkout screen is not smooth and has an insufficient touch area on iOS. The touch target size needs to be increased per iOS HIG guidelines."},
+  ],
+  imp:[
+    {t:"Excess padding next to the Zolve logo",b:"There is extra padding/spacing beside the Zolve logo that makes the layout feel unbalanced. The padding values need to be adjusted to align with the design system."},
+    {t:"Zolve logo is blurry and not styled as an interactive element",b:"The Zolve logo appears blurred and does not visually communicate that it is tappable. It should use a higher-resolution asset and be styled with appropriate affordances (tap highlight, button role) to indicate it redirects to the homepage."},
+    {t:"Profile name and points balance hidden behind hamburger menu",b:"On the main screen, the user's profile name and Z Points balance are only accessible after tapping the 3-line menu. These should be surfaced directly on the main screen as key contextual details for the booking experience."},
+    {t:"Loader is too slow to appear or missing entirely",b:"In several flows, the loading indicator either appears with a significant delay or does not render at all. Every async action (search, checkout, processing) should show an immediate loader to communicate that the app is working."},
+    {t:"Remove Logout option from the in-app Switchfly profile menu",b:"Since logging out breaks the in-app flow, the Logout option should be removed from the Switchfly profile menu on mobile. Session management should be handled at the Zolve app level, not within the embedded Switchfly experience."},
+    {t:"Search and processing response times are unacceptably slow (up to 1 minute)",b:"Searching or processing can take up to 1 minute to show results or navigate to the next screen. Acceptable SLA targets should be defined and enforced, with appropriate timeout handling and user feedback if exceeded."},
+  ]
+};
+
+function stBadge(s){
+  const k=s.toLowerCase();
+  if(k==='pass')    return`<span class="st sp">✓ Pass</span>`;
+  if(k==='fail')    return`<span class="st sf">✗ Fail</span>`;
+  return`<span class="st sn">⏳ Pending</span>`;
+}
+function priBadge(p){
+  const k=(p||'').toLowerCase();
+  if(k==='critical')return`<span class="pri pc">Critical</span>`;
+  if(k==='high')    return`<span class="pri ph">High</span>`;
+  if(k==='medium')  return`<span class="pri pm">Medium</span>`;
+  return`<span class="pri pl">Low</span>`;
+}
+
+function renderTC(data,bodyId){
+  const tb=document.getElementById(bodyId);
+  let h='',n=0;
+  data.forEach(r=>{
+    if(r.s){h+=`<tr class="sr"><td colspan="9">${r.s}</td></tr>`;return;}
+    n++;
+    const a=r.act?`<td class="act">${r.act}${r.note?`<br/><span style="color:#999;font-style:normal;font-size:.7rem">📌 ${r.note}</span>`:''}</td>`
+                 :`<td style="color:#ccc;font-size:.7rem">${r.note?`<span style="color:#999;font-style:italic;font-size:.7rem">📌 ${r.note}</span>`:'-'}</td>`;
+    h+=`<tr data-s="${r.st.toLowerCase()}" data-p="${(r.pri||'').toLowerCase()}" data-q="${(r.sc+' '+r.sub).toLowerCase()}">
+      <td class="tc-id">${r.id}</td><td><strong>${r.sub}</strong></td><td>${r.sc}</td>
+      <td style="font-size:.72rem;color:#555">${r.pre}</td>
+      <td class="steps">${r.steps}</td>
+      <td class="exp">${r.exp}</td>${a}
+      <td>${priBadge(r.pri)}</td><td>${stBadge(r.st)}</td></tr>`;
+  });
+  tb.innerHTML=h;return n;
+}
+
+const AF={};
+function filter(k,v,t){if(!AF[k])AF[k]={};AF[k][t]=v.toLowerCase();applyF(k);}
+function search(k,v){if(!AF[k])AF[k]={};AF[k].q=v.toLowerCase();applyF(k);}
+function applyF(k){
+  const tb=document.getElementById('body-'+k);
+  const rows=tb.querySelectorAll('tr:not(.sr)');
+  const f=AF[k]||{};let shown=0,total=rows.length;
+  rows.forEach(r=>{
+    let v=true;
+    if(f.status&&f.status!==''&&r.dataset.s!==f.status)v=false;
+    if(f.pri&&f.pri!==''&&r.dataset.p!==f.pri)v=false;
+    if(f.q&&f.q!==''&&!r.dataset.q.includes(f.q))v=false;
+    r.style.display=v?'':'none';if(v)shown++;
+  });
+  const el=document.getElementById(k+'-c');
+  if(el)el.textContent=shown===total?`${total} test cases`:`Showing ${shown} of ${total}`;
+}
+
+function renderSummary(){
+  const tb=document.getElementById('sum-body');
+  let h='',tot={n:0,p:0,f:0,q:0};
+  SUM.forEach(r=>{
+    tot.n+=r.n;tot.p+=r.p;tot.f+=r.f;tot.q+=r.q;
+    const pct=r.n?Math.round(r.p/r.n*100):0;
+    const col=pct===100?'var(--pass-fg)':pct>50?'var(--mb)':'var(--pend-fg)';
+    h+=`<tr>
+      <td><strong>${r.sheet}</strong></td><td>${r.cat}</td><td>${r.sec}</td>
+      <td style="text-align:center;font-weight:700">${r.n}</td>
+      <td style="text-align:center"><span style="color:var(--pass-fg);font-weight:700">${r.p}</span></td>
+      <td style="text-align:center"><span style="color:var(--fail-fg);font-weight:700">${r.f||'—'}</span></td>
+      <td style="text-align:center"><span style="color:var(--pend-fg);font-weight:700">${r.q}</span></td>
+      <td><div class="pb"><div class="pbr"><div class="pbf" style="width:${pct}%;background:${col}"></div></div><span style="font-size:.7rem;color:var(--sub);min-width:26px">${pct}%</span></div></td>
+    </tr>`;
+  });
+  const tp=Math.round(tot.p/tot.n*100);
+  h+=`<tr class="tr">
+    <td colspan="3"><strong>TOTAL</strong></td>
+    <td style="text-align:center"><strong>${tot.n}</strong></td>
+    <td style="text-align:center"><strong>${tot.p}</strong></td>
+    <td style="text-align:center"><strong>${tot.f}</strong></td>
+    <td style="text-align:center"><strong>${tot.q}</strong></td>
+    <td><div class="pb"><div class="pbr" style="background:rgba(255,255,255,.2)"><div class="pbf" style="width:${tp}%;background:#90EE90"></div></div><span style="font-size:.7rem;min-width:26px">${tp}%</span></div></td>
+  </tr>`;
+  tb.innerHTML=h;
+}
+
+function renderIssues(){
+  ['maj','imp'].forEach(t=>{
+    document.getElementById(t+'-list').innerHTML=ISSUES[t].map((x,i)=>
+      `<div class="icard ${t}"><div class="it">${i+1}. ${x.t}</div><div class="ib">${x.b}</div></div>`
+    ).join('');
+  });
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  renderSummary();
+  const c1=renderTC(ZP,'body-zp');  document.getElementById('zp-c').textContent=c1+' test cases';
+  const c2=renderTC(RWD,'body-rwd');document.getElementById('rwd-c').textContent=c2+' test cases';
+  const c3=renderTC(CON,'body-con');document.getElementById('con-c').textContent=c3+' test cases';
+  const c4=renderTC(EDG,'body-edg');document.getElementById('edg-c').textContent=c4+' test cases';
+  renderIssues();
+});
+</script>
+
+<!--
+==========================================================================
+  CONNECTING THIS TO GOOGLE SHEETS FOR REAL-TIME SYNC
+==========================================================================
+
+  YES — this is possible. Here's the exact setup:
+
+  STEP 1 ── Publish your Google Sheet
+    Google Sheets → File → Share → Publish to web
+    Choose each sheet tab → publish as CSV.
+    You'll get a URL like:
+    https://docs.google.com/spreadsheets/d/SHEET_ID/gviz/tq?tqx=out:csv&sheet=SheetName
+
+  STEP 2 ── Replace the hardcoded JS arrays above with fetch() calls
+    async function loadFromSheets() {
+      const BASE = 'https://docs.google.com/spreadsheets/d/YOUR_ID/gviz/tq?tqx=out:csv&sheet=';
+      const [zpCSV, rwdCSV] = await Promise.all([
+        fetch(BASE + encodeURIComponent('💎 Z Points Redemption')).then(r => r.text()),
+        fetch(BASE + encodeURIComponent('🏅 Rewards Display & History')).then(r => r.text()),
+        // ... other sheets
+      ]);
+      // parse CSV → render tables
+    }
+
+  STEP 3 ── Host the HTML file (cannot run from local file:// due to CORS)
+    Free options: GitHub Pages, Netlify Drop, Vercel
+
+  STEP 4 ── Auto-refresh every 60 seconds:
+    setInterval(() => location.reload(), 60000);
+
+  Want me to build the full Google Sheets-connected version?
+  Share your Sheet URL and I'll wire it up completely.
+==========================================================================
+-->
+</body>
+</html>
